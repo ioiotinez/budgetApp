@@ -1,0 +1,34 @@
+{
+    "month": 1,
+    "year": 2026,
+    "budget": {
+        "earns": [
+            {
+                "name": "Sueldo",
+                "amount": 2000
+            },
+            {
+                "name": "Inversiones",
+                "amount": 200
+            }
+        ],
+        "expenses": [
+            {
+                "name": "Hipoteca",
+                "amount": 4000
+            },
+            {
+                "name": "Nafta",
+                "amount": 100
+            }
+        ]
+    },
+    "movements": [
+        {
+            "name": "Sueldo",
+            "amount": 2000,
+            "date": "2026-01-01",
+            "description": ""
+        }
+    ]
+}

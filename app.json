@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "BudgetApp",
+    "slug": "budgetApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.budgetapp.personal",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/javascript"
+      }
+    },
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "enableWebWorker": false
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#14b8a6"
+        }
+      ]
+    ],
+    "scheme": "budgetapp",
+    "extra": {
+      "eas": {
+        "projectId": "6c71ce22-d837-4566-9a9f-a69de2cd3ee8"
+      }
+    }
+  }
+}
