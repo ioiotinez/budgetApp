@@ -84,10 +84,14 @@ export default function AddEditTransactionScreen() {
             }
         } catch (error) {
             console.error('Error saving transaction:', error);
-            setSaving(true);
+            setSaving(false);
             return;
         }
         setSaving(false);
+        setAmount('');
+        setDescription('');
+        setCategoryId(null);
+        setDate(todayISO());
         if (navigation.canGoBack()) {
             navigation.goBack();
         } else {

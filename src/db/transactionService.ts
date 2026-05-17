@@ -167,3 +167,36 @@ export async function deleteTransaction(id: number): Promise<void> {
         throw new DatabaseError(`Failed to delete transaction ${id}`, error as Error);
     }
 }
+
+export interface YearMonthTotal {
+    month: number;
+    year: number;
+    income: number;
+    expense: number;
+}
+
+export async function getYearTotals(year: number): Promise<YearMonthTotal[]> {
+    try {
+        const db = await getDb();
+        const prefix = `${year}`;
+        const rows = await db.getAllAsync<{ month: number; type: string; total: number }>(
+            `SELECT CAST(strftime('%m', date) AS INTEGER) as month, type, SUM(amount) as total
+         FROM transactions
+         WHERE date LIKE ?
+         GROUP BY month, type
+         ORDER BY month`,
+            [`${prefix}%`]
+        );
+
+        const result: YearMonthTotal[] = [];
+        for (let m = 1; m <= 12; m++) {
+            const monthRows = rows.filter(r => r.month === m);
+            const income = monthRows.find(r => r.type === 'income')?.total ?? 0;
+            const expense = monthRows.find(r => r.type === 'expense')?.total ?? 0;
+            result.push({ month: m, year, income, expense });
+        }
+        return result;
+    } catch (error) {
+        throw new DatabaseError(`Failed to fetch year totals for ${year}`, error as Error);
+    }
+}

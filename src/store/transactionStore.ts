@@ -52,7 +52,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
     addTransaction: async (data) => {
         await createTransaction(data);
-        await get().loadTransactions();
+        const { filters } = get();
+        await get().loadTransactions(filters);
         await get().loadMonthTotals(
             parseInt(data.date.substring(0, 4)),
             parseInt(data.date.substring(5, 7))
