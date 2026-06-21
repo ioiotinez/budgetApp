@@ -52,12 +52,10 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
     addTransaction: async (data) => {
         await createTransaction(data);
-        const { filters } = get();
-        await get().loadTransactions(filters);
-        await get().loadMonthTotals(
-            parseInt(data.date.substring(0, 4)),
-            parseInt(data.date.substring(5, 7))
-        );
+        const year = parseInt(data.date.substring(0, 4));
+        const month = parseInt(data.date.substring(5, 7));
+        await get().loadTransactions({ year, month });
+        await get().loadMonthTotals(year, month);
     },
 
     editTransaction: async (id, data) => {

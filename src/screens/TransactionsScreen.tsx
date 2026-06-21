@@ -5,7 +5,7 @@ import {
 import {
     Text, Surface, useTheme, Chip, Divider, IconButton, Searchbar, Portal, Dialog, Button,
 } from 'react-native-paper';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTransactionStore } from '../store/transactionStore';
@@ -42,12 +42,12 @@ export default function TransactionsScreen() {
         });
     }, [currentYear, currentMonth, selectedCategoryId, loadCategories, loadTransactions]);
 
-    useFocusEffect(useCallback(() => { reload(); }, [reload]));
-
-    // Asegurar recarga cuando cambian los filtros
+    // Recargar al montar, al cambiar filtros, y al regresar del focus
     useEffect(() => {
         reload();
-    }, [selectedCategoryId, currentYear, currentMonth]);
+        const unsubscribe = navigation.addListener('focus', () => { reload(); });
+        return unsubscribe;
+    }, [navigation, reload]);
 
     const filtered = useMemo(() => transactions.filter(tx => {
         const searchLower = search.toLowerCase();
