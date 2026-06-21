@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Surface, useTheme, IconButton, SegmentedButtons } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -36,8 +36,6 @@ export default function ReportsScreen() {
     }, [currentYear]);
 
     const { annualTotals, totalIncome: annualIncome, totalExpenses: annualExpenses, totalBalance, projection } = useAnnualReport(yearTotals);
-
-    const bgColor = theme.colors.background;
 
     const goToPrev = () => {
         const p = prevMonth(currentYear, currentMonth);
@@ -251,5 +249,4 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, paddingVertical: 12, gap: 10,
     },
     listDot: { width: 10, height: 10, borderRadius: 5 },
-    empty: { textAlign: 'center', marginTop: 40, fontSize: 15 },
 });
