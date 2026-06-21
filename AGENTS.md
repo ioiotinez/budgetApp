@@ -1,58 +1,68 @@
-# AGENTS.md - Instrucciones para el Desarrollo de BudgetApp
+# AGENTS.md
 
-Este documento contiene las directrices, estándares y decisiones arquitectónicas que deben seguir los agentes de IA al modificar o extender esta aplicación.
+Compact reference for AI agents working on BudgetApp.
 
-## 🏗 Arquitectura y Estado
+## Stack
 
-- **Offline-First**: Toda la lógica de negocio es local. Los respaldos se gestionan mediante exportación de archivos JSON.
-- **SQLite (expo-sqlite)**: Fuente única de verdad local. Usa `src/db/database.ts` para obtener la conexión y añade nuevos métodos en servicios específicos (`categoryService`, `transactionService`, etc.).
-- **Zustand**: Gestión de estado global. Se prefiere sobre React Context para evitar re-renders innecesarios.
-  - Cada dominio tiene su propio store en `src/store/`.
-  - Al modificar datos en la DB, se debe actualizar el estado del store correspondiente inmediatamente.
+- **Expo SDK 54** managed workflow (New Arch enabled).
+- **TypeScript strict** — verify with `npx tsc --noEmit`.
+- **SQLite** via `expo-sqlite`. Singleton connection from `src/db/database.ts`. Schema and seed data in `src/db/schema.ts`.
+- **Zustand v5** — one store per domain in `src/store/`. Stores call DB services directly, no API layer.
+- **React Native Paper v5** — use `useTheme()` from paper for colors. Theme defined in `src/theme/theme.ts`. No hardcoded colors.
+- **React Navigation v7** — bottom tabs (Dashboard, Transactions, Reports, Settings) with nested stacks for Transactions and Settings. See `src/navigation/AppNavigator.tsx`.
+- **`react-native-reanimated`** plugin must be **last** in `babel.config.js`.
 
-## 🗃 Estándares de Base de Datos
+## Architecture
 
-- **Tipado**: Todas las consultas SQL deben estar tipadas mediante interfaces en `src/types/index.ts`.
-- **Fechas**: Almacenar fechas siempre en formato ISO `YYYY-MM-DD` como `TEXT`.
-- **Claves Foráneas**: Siempre habilitar `PRAGMA foreign_keys = ON`.
-- **Integridad**: Usa transacciones (`BEGIN TRANSACTION` / `COMMIT`) para operaciones que afecten múltiples tablas (ej. restauración de backups).
+```
+src/
+  db/          — SQL queries and DB connection
+  store/       — Zustand stores (budget, category, transaction, settings)
+  hooks/       — Derived/computed data (reports, deviations)
+  services/    — Backup export/import (JSON files)
+  screens/     — View + store orchestration
+  components/  — Shared UI components
+  navigation/  — AppNavigator
+  theme/       — Light/dark theme definitions
+  types/       — All TypeScript interfaces
+  utils/       — Date/currency formatters
+```
 
-## 🎨 UI & Estética (Material Design 3)
+State flow: **Screen → Store action → DB service → SQLite → Store state update → Re-render**.
 
-- **React Native Paper**: Usa componentes de esta librería para mantener la consistencia.
-- **Temas**: Acceder a colores mediante `useTheme()` de `react-native-paper`. Nunca uses colores "hardcoded" fuera de `src/theme/theme.ts`.
-- **Gráficos**: No instales librerías pesadas de gráficos si no es necesario. Actualmente usamos `react-native-svg` para charts personalizados por ser más ligero y compatible.
+## Database
 
-## 📥 Gestión de Backups (JSON)
+- Dates stored as ISO `YYYY-MM-DD` `TEXT`.
+- `PRAGMA foreign_keys = ON` and `PRAGMA journal_mode = WAL` set in `CREATE_TABLES_SQL`.
+- Schema changes require users to delete `budget.db` locally (no migration system yet).
+- `getDb()` returns a singleton. On web, uses an in-memory mock backed by `localStorage`.
+- DB services (`transactionService.ts`, etc.) throw `DatabaseError` on failure.
 
-- **Formato de Backup**: La estructura del JSON exportado debe coincidir con la interfaz `BackupData` definida en `src/types/index.ts`.
-- **Restore**: Ofrecer sempre la opción de "Fusionar" (usar `INSERT OR REPLACE`) para no perder datos generados localmente post-backup.
+## Stores
 
-## 📝 Convenciones de Código
+- `transactionStore`: `addTransaction` auto-refreshes with `{ year, month }` from the new transaction's date. Not `loadTransactions({})`.
+- `budgetStore`: call `checkAndInitCurrentMonth` on app start to seed monthly budgets from template or previous month.
+- `categoryStore`: `addCategory` auto-refreshes categories and template.
+- `settingsStore`: persists `dark_mode` to `settings` table.
 
-- **TypeScript**: Estricto. Evitar el uso de `any`.
-- **Estructura de Carpetas**:
-  - `src/db`: Lógica SQL pura.
-  - `src/services`: Lógica de exportación/importación y sistema de archivos.
-  - `src/hooks`: Lógica de derivación de datos (ej. cálculos de reportes o alertas).
-  - `src/screens`: Solo componentes de vista y orquestación de store.
+## Screens & Navigation
 
+- `TransactionsScreen` reloads on focus via `navigation.addListener('focus', reload)`, not `useFocusEffect`.
+- `AddEditTransactionScreen` navigates back on save via `goBack()`, falls back to `navigate('TransactionList')`.
+- `ReportsScreen` still uses `useFocusEffect` with `loadCategories`/`loadTransactions`/`loadMonthTotals`.
 
-## ⚠️ Consideraciones de Ejecución
+## Build (APK)
 
-- Al actualizar el esquema en `src/db/schema.ts`, recuerda que los usuarios actuales necesitarán migraciones o borrar la DB local (`budget.db`) para ver los cambios en desarrollo.
-- Usa `npx tsc --noEmit` para verificar tipos antes de dar por finalizada una tarea.
+Uses Docker (no local Android SDK needed):
 
-## 🔨 Build y Distribución
+```bash
+docker-compose up -d && docker exec budgetapp_app-build_1 ./build-apk.sh
+```
 
-- **Referencia principal**: Ver `BUILD_INSTRUCTIONS.md` para comandos completos.
-- **Build release**: `docker-compose up -d && docker exec budgetapp_app-build_1 ./build-apk.sh`
-- **Output**: `apk-output/budgetapp-release.apk` (~131 MB)
-- **La APK release incluye JS bundle embebido** (funciona sin Metro)
-- **Nota**: Primer build = 20-30 min, posteriores = 5-10 min
+Output: `apk-output/budgetapp-release.apk`. Builds single arch `arm64-v8a` via `-PreactNativeArchitectures=arm64-v8a`. First build ~20-30 min, subsequent ~5-10 min. See `BUILD_INSTRUCTIONS.md`.
 
-## 💬 Comunicación
+## What's missing
 
-- **Respuestas concretas**: Máx 3-4 oraciones, enfocadas en lo esencial
-- **Sin introducciones/conclusiones** innecesarias
-- **Evitar info redundante** o tangencial
+- No test framework, no lint config, no CI/CD, no pre-commit hooks.
+- `victory-native` is listed in `package.json` but unused.
+- Charts were removed; `react-native-svg` is no longer needed.
