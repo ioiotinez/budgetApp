@@ -133,6 +133,16 @@ export default function AppNavigator() {
                     name="Transactions"
                     component={TransactionsNavigator}
                     options={{ title: 'Movimientos' }}
+                    listeners={({ navigation }: { navigation: any }) => ({
+                        tabPress: (e: any) => {
+                            const state = navigation.getState();
+                            const txRoute = state.routes.find((r: any) => r.name === 'Transactions');
+                            if (txRoute?.state && 'index' in txRoute.state && txRoute.state.index !== 0) {
+                                e.preventDefault();
+                                navigation.navigate('Transactions', { screen: 'TransactionList' });
+                            }
+                        },
+                    })}
                 />
                 <Tab.Screen
                     name="Reports"
