@@ -12,6 +12,8 @@ import ReportsScreen from '../screens/ReportsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import BudgetScreen from '../screens/BudgetScreen';
+import RecurringRulesScreen from '../screens/RecurringRulesScreen';
+import AddEditRecurringScreen from '../screens/AddEditRecurringScreen';
 
 import type {
     RootTabParamList,
@@ -77,6 +79,18 @@ function SettingsNavigator() {
                 name="BudgetSetup"
                 component={BudgetScreen}
                 options={{ title: 'Presupuesto mensual' }}
+            />
+            <SettingsStack.Screen
+                name="RecurringRules"
+                component={RecurringRulesScreen}
+                options={{ title: 'Transacciones recurrentes' }}
+            />
+            <SettingsStack.Screen
+                name="AddEditRecurring"
+                component={AddEditRecurringScreen}
+                options={({ route }) => ({
+                    title: route.params?.ruleId ? 'Editar regla' : 'Nueva regla recurrente',
+                })}
             />
         </SettingsStack.Navigator>
     );

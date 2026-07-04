@@ -82,6 +82,35 @@ export interface MonthlyReport {
     }>;
 }
 
+// ─── Recurring Transactions ───────────────────────────────────────────────
+
+export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+export interface RecurringRule {
+    id: number;
+    amount: number;
+    type: TransactionType;
+    category_id: number;
+    description: string;
+    frequency: RecurringFrequency;
+    start_date: string;
+    end_date?: string;
+    last_generated_date?: string;
+    active: boolean;
+    createdAt: string;
+    category?: Category;
+    category_name?: string;
+    category_icon?: string;
+    category_color?: string;
+    category_type?: TransactionType;
+}
+
+export interface PendingRecurring {
+    rule: RecurringRule;
+    dueDate: string;
+    amount: number;
+}
+
 export interface BackupData {
     version: number;
     exportedAt: string;
@@ -89,6 +118,7 @@ export interface BackupData {
     templates: BudgetTemplate[];
     budgets: MonthlyBudget[];
     transactions: Transaction[];
+    recurringRules?: RecurringRule[];
     settings?: Record<string, string>;
 }
 
@@ -111,4 +141,6 @@ export type SettingsStackParamList = {
     SettingsHome: undefined;
     Categories: undefined;
     BudgetSetup: { year: number; month: number };
+    RecurringRules: undefined;
+    AddEditRecurring: { ruleId?: number };
 };

@@ -53,6 +53,22 @@ export const CREATE_TABLES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_transactions_date_type ON transactions(date, type);
   CREATE INDEX IF NOT EXISTS idx_monthly_budgets_year_month ON monthly_budgets(year, month);
   CREATE INDEX IF NOT EXISTS idx_budget_templates_category ON budget_templates(category_id);
+
+  CREATE TABLE IF NOT EXISTS recurring_rules (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount      REAL    NOT NULL,
+    type        TEXT    NOT NULL CHECK(type IN ('income','expense')),
+    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    description TEXT    NOT NULL DEFAULT '',
+    frequency   TEXT    NOT NULL CHECK(frequency IN ('weekly','biweekly','monthly','yearly')),
+    start_date  TEXT    NOT NULL,
+    end_date    TEXT,
+    last_generated_date TEXT,
+    active      INTEGER NOT NULL DEFAULT 1,
+    createdAt   TEXT    NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_recurring_rules_active ON recurring_rules(active);
 `;
 
 /** Predefined categories to seed on first launch */

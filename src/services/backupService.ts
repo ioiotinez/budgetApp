@@ -11,7 +11,7 @@ import { getDb } from '../db/database';
 import { getCategories, getBudgetTemplate } from '../db/categoryService';
 import { getMonthlyBudgets } from '../db/budgetService';
 import { getTransactions } from '../db/transactionService';
-import type { BackupData, Category, BudgetTemplate, MonthlyBudget, Transaction } from '../types';
+import type { BackupData, Category, BudgetTemplate, MonthlyBudget, Transaction, RecurringRule } from '../types';
 
 // ─── Local Export (via Share sheet) ──────────────────────────────────────────
 
@@ -33,6 +33,11 @@ export async function collectAllData(): Promise<BackupData> {
         budgets = budgets.concat(rows);
     }
 
+    // Get recurring rules
+    const recurringRules = await db.getAllAsync<RecurringRule>(
+        'SELECT * FROM recurring_rules'
+    );
+
     // Get all settings
     const settingsRows = await db.getAllAsync<{ key: string; value: string }>(
         'SELECT key, value FROM settings'
@@ -49,6 +54,7 @@ export async function collectAllData(): Promise<BackupData> {
         templates: template,
         budgets,
         transactions,
+        recurringRules,
         settings,
     };
 }
@@ -122,6 +128,7 @@ export async function restoreFromBackup(data: BackupData, merge = false): Promis
         DELETE FROM transactions;
         DELETE FROM monthly_budgets;
         DELETE FROM budget_templates;
+        DELETE FROM recurring_rules;
         DELETE FROM categories;
       `);
         }
@@ -150,6 +157,17 @@ export async function restoreFromBackup(data: BackupData, merge = false): Promis
          VALUES (?, ?, ?, ?, ?)`,
                 [b.id, b.year, b.month, b.category_id, b.amount]
             );
+        }
+
+        // Restore recurring rules
+        if (data.recurringRules) {
+            for (const r of data.recurringRules) {
+                await db.runAsync(
+                    `INSERT OR REPLACE INTO recurring_rules (id, amount, type, category_id, description, frequency, start_date, end_date, last_generated_date, active, createdAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [r.id, r.amount, r.type, r.category_id, r.description, r.frequency, r.start_date, r.end_date ?? null, r.last_generated_date ?? null, r.active ? 1 : 0, r.createdAt]
+                );
+            }
         }
 
         // Restore transactions

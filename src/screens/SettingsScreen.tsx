@@ -95,6 +95,21 @@ export default function SettingsScreen() {
                 />
             </Surface>
 
+            {/* ── Transacciones Recurrentes ── */}
+            <Text variant="labelLarge" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+                TRANSACCIONES RECURRENTES
+            </Text>
+            <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+                <List.Item
+                    title="Reglas recurrentes"
+                    description="Administrar transacciones que se repiten"
+                    left={() => <View style={styles.listIconContainer}><Text style={styles.listIcon}>🔄</Text></View>}
+                    onPress={() => navigation.navigate('RecurringRules')}
+                    titleStyle={{ color: theme.colors.onSurface }}
+                    descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                />
+            </Surface>
+
             {/* ── Apariencia ── */}
             <Text variant="labelLarge" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
                 APARIENCIA

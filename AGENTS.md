@@ -37,6 +37,7 @@ State flow: **Screen → Store action → DB service → SQLite → Store state 
 - Schema changes require users to delete `budget.db` locally (no migration system yet).
 - `getDb()` returns a singleton. On web, uses an in-memory mock backed by `localStorage`.
 - DB services (`transactionService.ts`, etc.) throw `DatabaseError` on failure.
+- `recurringService.ts`: `getPendingRecurring(rules, year, month)` computes which active rules have instances due in a given month but not yet generated. Frequencies: `weekly`, `biweekly`, `monthly`, `yearly`. Uses `last_generated_date` to avoid duplicates. Catch-up logic handles missed periods.
 
 ## Stores
 
@@ -44,12 +45,16 @@ State flow: **Screen → Store action → DB service → SQLite → Store state 
 - `budgetStore`: call `checkAndInitCurrentMonth` on app start to seed monthly budgets from template or previous month.
 - `categoryStore`: `addCategory` auto-refreshes categories and template.
 - `settingsStore`: persists `dark_mode` to `settings` table.
+- `recurringStore`: manages `recurring_rules` CRUD + `pending` items. `confirmPending` creates a real transaction and updates `last_generated_date`. `skipPending` only updates `last_generated_date` without creating a transaction. `loadPending(year, month)` fetches active rules and computes which are due but not yet confirmed.
 
 ## Screens & Navigation
 
 - `TransactionsScreen` reloads on focus via `navigation.addListener('focus', reload)`, not `useFocusEffect`.
 - `AddEditTransactionScreen` navigates back on save via `goBack()`, falls back to `navigate('TransactionList')`.
 - `ReportsScreen` still uses `useFocusEffect` with `loadCategories`/`loadTransactions`/`loadMonthTotals`.
+- `RecurringRulesScreen` lists rules with edit/delete, accessible from Settings.
+- `AddEditRecurringScreen` creates/edits a recurring rule (amount, type, category, frequency, dates, active toggle).
+- `PendingRecurringBanner` shows on Dashboard with Confirm/Skip buttons; confirm opens a Portal Dialog showing transaction details before saving.
 
 ## Build (APK)
 

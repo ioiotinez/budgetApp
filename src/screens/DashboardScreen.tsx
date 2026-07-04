@@ -11,10 +11,12 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useTransactionStore } from '../store/transactionStore';
 import { useBudgetStore } from '../store/budgetStore';
 import { useCategoryStore } from '../store/categoryStore';
+import { useRecurringStore } from '../store/recurringStore';
 import { useDeviations } from '../hooks/useDeviations';
 import { usePeriodNavigation } from '../hooks/usePeriodNavigation';
 import { SummaryCard } from '../components/SummaryCard';
 import { DeviationRow } from '../components/DeviationRow';
+import { PendingRecurringBanner } from '../components/PendingRecurringBanner';
 import { formatCurrency, formatMonthYear } from '../utils/formatters';
 import { deviationColors, incomeColor, expenseColor } from '../theme/theme';
 import type { RootTabParamList } from '../types';
@@ -29,6 +31,7 @@ export default function DashboardScreen() {
         useBudgetStore();
     const { monthTotals, loadMonthTotals } = useTransactionStore();
     const { loadCategories } = useCategoryStore();
+    const { loadPending } = useRecurringStore();
     const { deviations, over, warning, hasAlerts } = useDeviations();
     const { globalDeviations } = useBudgetStore();
     const { goToPrev, goToNext } = usePeriodNavigation();
@@ -39,7 +42,8 @@ export default function DashboardScreen() {
         await loadMonthTotals(currentYear, currentMonth);
         await loadDeviations(currentYear, currentMonth);
         await loadGlobalDeviations(currentYear, currentMonth);
-    }, [currentYear, currentMonth, loadCategories, checkAndInitCurrentMonth, loadMonthTotals, loadDeviations, loadGlobalDeviations]);
+        await loadPending(currentYear, currentMonth);
+    }, [currentYear, currentMonth, loadCategories, checkAndInitCurrentMonth, loadMonthTotals, loadDeviations, loadGlobalDeviations, loadPending]);
 
     useFocusEffect(useCallback(() => { reload(); }, [reload]));
 
@@ -66,6 +70,9 @@ export default function DashboardScreen() {
                     <SummaryCard label="Ingresos" value={monthTotals.income} color={incomeColor} />
                     <SummaryCard label="Gastos" value={monthTotals.expense} color={expenseColor} />
                 </View>
+
+                {/* ── Pending Recurring ── */}
+                <PendingRecurringBanner onConfirm={reload} />
 
                 {/* ── Global Deviations ── */}
                 {globalDeviations.length > 0 && globalDeviations.some(g => g.budgeted > 0) && (

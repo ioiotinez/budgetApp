@@ -21,6 +21,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     budget_templates: [],
                     transactions: [],
                     monthly_budgets: [],
+                    recurring_rules: [],
                     settings: [],
                 };
                 localStorage.setItem('budget_app_data', JSON.stringify(_webStorage));
@@ -35,6 +36,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                 if (sqlLower.includes('delete from transactions')) storage.transactions = [];
                 if (sqlLower.includes('delete from monthly_budgets')) storage.monthly_budgets = [];
                 if (sqlLower.includes('delete from budget_templates')) storage.budget_templates = [];
+                if (sqlLower.includes('delete from recurring_rules')) storage.recurring_rules = [];
                 if (sqlLower.includes('delete from categories')) storage.categories = [];
                 localStorage.setItem('budget_app_data', JSON.stringify(storage));
             },
@@ -139,6 +141,41 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     return saveAndReturn({ lastInsertRowId: 1, changes: 1 });
                 }
 
+                // Handle Recurring Rules
+                if (sqlLower.includes('recurring_rules') && (sqlLower.includes('insert') || sqlLower.includes('replace') || sqlLower.includes('update'))) {
+                    if (sqlLower.includes('(id,')) {
+                        const [id, amount, type, catId, description, frequency, startDate, endDate, lastGen, active, createdAt] = params;
+                        const idx = storage.recurring_rules.findIndex((r: any) => r.id == id);
+                        const ruleData: any = { id, amount, type, category_id: catId, description, frequency, start_date: startDate, end_date: endDate, last_generated_date: lastGen, active, createdAt };
+                        if (idx !== -1) storage.recurring_rules[idx] = ruleData;
+                        else storage.recurring_rules.push(ruleData);
+                    } else {
+                        const newId = storage.recurring_rules.length > 0 ? Math.max(...storage.recurring_rules.map((r: any) => r.id)) + 1 : 1;
+                        const [amount, type, catId, description, frequency, startDate, endDate, lastGen, active, createdAt] = params;
+                        storage.recurring_rules.push({
+                            id: newId, amount, type, category_id: catId, description, frequency,
+                            start_date: startDate, end_date: endDate, last_generated_date: lastGen, active, createdAt,
+                        });
+                    }
+                    return saveAndReturn({ lastInsertRowId: 1, changes: 1 });
+                }
+
+                if (sqlLower.includes('update recurring_rules')) {
+                    const id = params[params.length - 1];
+                    const idx = storage.recurring_rules.findIndex((r: any) => r.id == id);
+                    if (idx !== -1) {
+                        const setClause = sqlLower.split('set')[1].split('where')[0];
+                        const fields = setClause.split(',').map(f => f.trim().split('=')[0].trim());
+                        let pIdx = 0;
+                        fields.forEach((field: string) => {
+                            if (storage.recurring_rules[idx].hasOwnProperty(field)) {
+                                storage.recurring_rules[idx][field] = params[pIdx++];
+                            }
+                        });
+                    }
+                    return saveAndReturn({ lastInsertRowId: id, changes: 1 });
+                }
+
                 // Handle Transactions
                 if (sqlLower.includes('transactions') && (sqlLower.includes('insert') || sqlLower.includes('replace'))) {
                     let txData;
@@ -238,6 +275,20 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                         // Make sure to merge {cat} followed by {mb} so budget ID wins
                         return { ...cat, ...mb };
                     });
+                }
+
+                // 3.5. Recurring Rules
+                if (sqlLower.includes('from recurring_rules')) {
+                    let results = [...(storage.recurring_rules || [])];
+                    if (params.length > 0) {
+                        if (sqlLower.includes('active = ?')) {
+                            results = results.filter((r: any) => r.active == params[0]);
+                        }
+                    }
+                    return results.map((r: any) => {
+                        const cat = storage.categories.find((c: any) => c.id == r.category_id);
+                        return { ...r, category_name: cat?.name, category_icon: cat?.icon, category_color: cat?.color, category_type: cat?.type };
+                    }).sort((a: any, b: any) => a.createdAt - b.createdAt);
                 }
 
                 // 4. Categories
