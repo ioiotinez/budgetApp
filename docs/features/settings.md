@@ -1,34 +1,51 @@
 # Settings
 
-App configuration hub: category management, budget setup, dark mode, and backup/restore.
+App configuration hub: categories, monthly budget, recurring rules, dark mode and local JSON backup/restore.
 
 ## Key files
 
 - `src/screens/SettingsScreen.tsx`
 - `src/services/backupService.ts`
 - `src/store/settingsStore.ts`
+- `src/db/schema.ts`
 
 ## Sections
 
-### Budget
+The screen is a `ScrollView` of labeled `Surface` cards, in this order:
 
-Links to `CategoriesScreen` and `BudgetSetup` (pre-filled with current month).
+### PRESUPUESTO
 
-### Appearance
+- **Categorías** → `Categories` stack screen.
+- **Presupuesto mensual** → `BudgetSetup` with `{ year, month }` taken from the current period; the description shows the formatted month.
 
-Dark mode toggle (`Switch` component). Persisted to `settings` table via `settingsStore.toggleDarkMode()`.
+### TRANSACCIONES RECURRENTES
 
-### Backup
+- **Reglas recurrentes** → `RecurringRules` (rule CRUD and pending confirmations; see `recurring.md`).
 
-- **Export JSON:** Collects all data (`collectAllData`), writes to filesystem, opens share sheet via `expo-sharing`. On web, triggers a download.
-- **Import JSON:** Opens document picker (`expo-document-picker`), parses JSON, prompts user to **Replace** (wipe + insert) or **Merge** (`INSERT OR REPLACE`).
+### APARIENCIA
+
+- Dark mode `Switch` bound to `settingsStore.darkMode`; `toggleDarkMode()` persists `dark_mode` to the `settings` table. `App.tsx` loads settings at startup and picks `AppDarkTheme` / `AppLightTheme`.
+- `loadSettings()` also runs when this screen mounts.
+
+### RESPALDO LOCAL (JSON)
+
+- **Exportar JSON** — `collectAllData()` gathers every table, writes `budgetapp_backup_YYYY-MM-DD.json` in the document directory and opens the share sheet via `expo-sharing`; on web it triggers a browser download instead.
+- **Importar JSON** — `pickLocalBackup()` opens `expo-document-picker` for `application/json`, parses it and shows an `Alert` with **Reemplazar**, **Fusionar** or **Cancelar**:
+  - Replace wipes transactions, monthly budgets, templates, recurring rules and categories first.
+  - Merge inserts/replaces by id without deleting local data.
+  - Both run inside an explicit transaction (`BEGIN` / `COMMIT`, `ROLLBACK` on error).
+- List items are disabled while an import/export is in flight.
+
+## Amount visibility
+
+The Dashboard amount privacy (`amounts_visible` setting) is also persisted by `settingsStore` via `toggleAmountsVisibility()`, but it is toggled from the eye button on the Dashboard balance card, not from Settings.
 
 ## Backup data structure
 
-See `BackupData` type in `src/types/index.ts`: `version`, `exportedAt`, `categories`, `templates`, `budgets`, `transactions`, `settings`.
+`BackupData` in `src/types/index.ts`: `version` (`1`), `exportedAt`, `categories`, `templates`, `budgets`, `transactions`, `recurringRules` and `settings` (both optional for older files). Restore reads the same shapes, including the `recurring_rules` table.
 
 ## States
 
-- **Normal:** List-based UI with `List.Item` components and emoji icons.
-- **Import dialog:** Portal-based confirmation with Replace / Merge options.
-- **Loading during import:** Transactional restore with rollback on failure.
+- **Normal:** list-based UI with `List.Item` rows and emoji icons.
+- **Import dialog:** platform `Alert` (not a Portal dialog) with the three choices.
+- **Busy:** export/import rows disabled; errors are shown with `Alert.alert('Error', ...)` and success with a confirmation alert.

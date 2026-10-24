@@ -1,6 +1,6 @@
 # Categories
 
-CRUD management of income/expense categories. Each category has a name, type (`income` / `expense`), emoji icon, and hex color.
+CRUD management of income/expense categories. Each category has a name, type (`income` / `expense`), emoji icon and hex color.
 
 ## Key files
 
@@ -8,32 +8,39 @@ CRUD management of income/expense categories. Each category has a name, type (`i
 - `src/db/categoryService.ts`
 - `src/store/categoryStore.ts`
 
-## Data models
+## Data model
 
-| Field      | Type                          |
-| ---------- | ----------------------------- |
-| `name`     | `string`                      |
-| `type`     | `'income' \| 'expense'`       |
-| `icon`     | `string` (emoji)              |
-| `color`    | `string` (hex, e.g. `#22c55e`) |
+| Field       | Type                    |
+| ----------- | ----------------------- |
+| `id`        | `number`                |
+| `name`      | `string`                |
+| `type`      | `'income' \| 'expense'` |
+| `icon`      | `string` (emoji)        |
+| `color`     | `string` (hex, e.g. `#22c55e`) |
+| `createdAt` | `string` (ISO timestamp) |
 
 ## Seed data
 
-15 default categories on first launch (4 income, 11 expense). See `src/db/schema.ts`.
+15 default categories on first launch (4 income, 11 expense), defined in `DEFAULT_CATEGORIES` in `src/db/schema.ts`. The list is ordered by type then name, so expenses appear first.
 
 ## States
 
-- **Loading:** `ActivityIndicator` overlay.
-- **Empty:** No categories exist (unlikely after seeding).
-- **Populated:** FlatList with emoji, name, type chip per row.
+- **Populated:** `FlatList` of rows with emoji, name, type chip (colored with the category color) and pencil/trash actions.
+- **Empty:** no dedicated empty component — the list simply renders nothing (only possible if every category was deleted).
+- **Loading:** `categoryStore.isLoading` exists but the screen renders no spinner.
 
 ## Interactions
 
-- **Edit:** Pencil icon → Portal dialog with name, type toggle, icon grid (16 emojis), color grid (12 colors).
-- **Delete:** Trash icon → confirmation dialog (warns about cascade deletion of related transactions/budgets).
-- **Add:** FAB → same dialog as edit (empty fields).
-- **Auto-refresh:** `addCategory` / `editCategory` / `removeCategory` refresh both categories and template store.
+- **Add:** FAB → dialog with empty defaults (name empty, type `expense`, icon `💰`, color `#14b8a6`).
+- **Edit:** pencil icon → same dialog prefilled from the row.
+- **Dialog fields:** name `TextInput`, type `SegmentedButtons` (Gasto / Ingreso), icon grid (16 emojis) and color grid (12 colors). Saving requires a non-empty trimmed name.
+- **Delete:** trash icon → confirmation dialog that warns budgets and movements will be removed too → `removeCategory`.
+- **Refresh:** the screen reloads categories on focus via `useFocusEffect`.
+
+## Store refreshes
+
+`addCategory` refreshes categories **and** the budget template; `removeCategory` does the same. `editCategory` refreshes categories only. `updateTemplateAmount` (upsert into `budget_templates`) and `loadTemplate` exist in the store but no screen calls them yet.
 
 ## Cascade deletion
 
-Foreign keys with `ON DELETE CASCADE` — deleting a category removes all associated budgets, template entries, and transactions.
+Category foreign keys use `ON DELETE CASCADE`, so deleting a category also removes its `budget_templates`, `monthly_budgets`, `transactions` and `recurring_rules` rows.
