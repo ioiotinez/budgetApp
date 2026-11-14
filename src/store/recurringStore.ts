@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import {
     getRecurringRules,
-    getRecurringRuleById,
     createRecurringRule,
     updateRecurringRule,
     deleteRecurringRule,

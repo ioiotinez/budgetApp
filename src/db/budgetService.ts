@@ -1,12 +1,6 @@
 import { getDb } from './database';
+import { DatabaseError } from './transactionService';
 import type { MonthlyBudget, DeviationItem, Category, GlobalDeviation } from '../types';
-
-export class DatabaseError extends Error {
-    constructor(message: string, public cause?: Error) {
-        super(message);
-        this.name = 'DatabaseError';
-    }
-}
 
 // ─── Monthly Budget CRUD ──────────────────────────────────────────────────────
 

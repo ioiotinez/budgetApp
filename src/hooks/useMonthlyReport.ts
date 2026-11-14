@@ -31,26 +31,6 @@ export function useMonthlyReport() {
             .sort((a, b) => b.value - a.value);
     }, [transactions, categories]);
 
-    /** Income by category */
-    const incomeByCategory = useMemo(() => {
-        const map = new Map<number, number>();
-        for (const tx of transactions) {
-            if (tx.type === 'income') {
-                map.set(tx.category_id, (map.get(tx.category_id) ?? 0) + tx.amount);
-            }
-        }
-        return Array.from(map.entries())
-            .map(([categoryId, total]) => {
-                const cat = categories.find(c => c.id === categoryId);
-                return {
-                    label: cat?.name ?? 'Otro',
-                    value: total,
-                    color: cat?.color ?? '#94a3b8',
-                };
-            })
-            .sort((a, b) => b.value - a.value);
-    }, [transactions, categories]);
-
     const balance = monthTotals.income - monthTotals.expense;
 
     return {
@@ -58,6 +38,5 @@ export function useMonthlyReport() {
         totalExpenses: monthTotals.expense,
         balance,
         expenseByCategory,
-        incomeByCategory,
     };
 }

@@ -19,12 +19,7 @@ export function useDeviations() {
         [deviations]
     );
 
-    const ok = useMemo(
-        () => deviations.filter(d => d.status === 'ok'),
-        [deviations]
-    );
-
     const hasAlerts = over.length > 0 || warning.length > 0;
 
-    return { deviations, over, warning, ok, hasAlerts };
+    return { deviations, over, warning, hasAlerts };
 }

@@ -37,14 +37,6 @@
         {
           "enableWebWorker": false
         }
-      ],
-      "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#14b8a6"
-        }
       ]
     ],
     "scheme": "budgetapp",

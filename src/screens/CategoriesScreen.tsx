@@ -198,7 +198,6 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     list: { paddingHorizontal: 12, paddingBottom: 80 },
-    sectionHeader: { paddingHorizontal: 4, paddingVertical: 8 },
     catRow: {
         flexDirection: 'row', alignItems: 'center', borderRadius: 12,
         paddingHorizontal: 12, paddingVertical: 8, marginBottom: 4,

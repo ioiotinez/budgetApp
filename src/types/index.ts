@@ -70,18 +70,6 @@ export interface GlobalDeviation {
     percentage: number;
 }
 
-export interface MonthlyReport {
-    year: number;
-    month: number;
-    totalIncome: number;
-    totalExpenses: number;
-    balance: number;
-    byCategory: Array<{
-        category: Category;
-        total: number;
-    }>;
-}
-
 // ─── Recurring Transactions ───────────────────────────────────────────────
 
 export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';

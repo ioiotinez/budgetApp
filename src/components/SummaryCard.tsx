@@ -2,23 +2,29 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Text, Surface, useTheme } from 'react-native-paper';
 
-import { formatCurrency } from '../utils/formatters';
-import { incomeColor, expenseColor } from '../theme/theme';
+import { formatAmount } from '../utils/formatters';
 
 interface SummaryCardProps {
     label: string;
     value: number;
     color: string;
+    visible?: boolean;
 }
 
-export function SummaryCard({ label, value, color }: SummaryCardProps) {
+export function SummaryCard({ label, value, color, visible = true }: SummaryCardProps) {
     const theme = useTheme();
+    const valueColor = visible ? color : theme.colors.onSurfaceVariant;
+    const valueText = formatAmount(value, visible);
 
     return (
         <Surface style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>{label}</Text>
-            <Text variant="titleLarge" style={{ color, fontWeight: '700', marginTop: 4 }}>
-                {formatCurrency(value)}
+            <Text
+                variant="titleLarge"
+                style={{ color: valueColor, fontWeight: '700', marginTop: 4 }}
+                accessibilityLabel={visible ? `${label}: ${valueText}` : `${label}: oculto`}
+            >
+                {valueText}
             </Text>
         </Surface>
     );

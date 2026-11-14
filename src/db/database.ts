@@ -332,8 +332,3 @@ async function seedDefaultCategories(db: SQLite.SQLiteDatabase): Promise<void> {
         });
     }
 }
-
-export async function executeRaw(sql: string): Promise<void> {
-    const db = await getDb();
-    await db.execAsync(sql);
-}

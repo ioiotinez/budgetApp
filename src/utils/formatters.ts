@@ -3,6 +3,9 @@ import { es } from 'date-fns/locale';
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
 
+/** Placeholder shown instead of amounts when the user hides them (privacy mode). */
+export const MASKED_AMOUNT = '••••••';
+
 /**
  * Format a number as currency.
  * Uses Argentine peso sign by default; adjust locale/currency to taste.
@@ -16,12 +19,9 @@ export function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-/** Format a raw number with thousands separator, no currency symbol */
-export function formatNumber(amount: number): string {
-    return new Intl.NumberFormat('es-AR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    }).format(amount);
+/** Format an amount, or return the mask when amounts are hidden. */
+export function formatAmount(amount: number, visible: boolean): string {
+    return visible ? formatCurrency(amount) : MASKED_AMOUNT;
 }
 
 // ─── Dates ────────────────────────────────────────────────────────────────────
@@ -46,16 +46,7 @@ export function todayISO(): string {
     return format(new Date(), 'yyyy-MM-dd');
 }
 
-/** Return an ISO string for a given JS Date */
-export function toISO(date: Date): string {
-    return format(date, 'yyyy-MM-dd');
-}
-
 // ─── Percentage ───────────────────────────────────────────────────────────────
-
-export function formatPercent(value: number): string {
-    return `${Math.round(value)}%`;
-}
 
 // ─── Month navigation helpers ─────────────────────────────────────────────────
 

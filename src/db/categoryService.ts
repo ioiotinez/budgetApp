@@ -1,12 +1,6 @@
 import { getDb } from './database';
+import { DatabaseError } from './transactionService';
 import type { Category, BudgetTemplate, TransactionType } from '../types';
-
-export class DatabaseError extends Error {
-    constructor(message: string, public cause?: Error) {
-        super(message);
-        this.name = 'DatabaseError';
-    }
-}
 
 // ─── Categories ──────────────────────────────────────────────────────────────
 
@@ -25,15 +19,6 @@ export async function getCategories(type?: TransactionType): Promise<Category[]>
         );
     } catch (error) {
         throw new DatabaseError('Failed to fetch categories', error as Error);
-    }
-}
-
-export async function getCategoryById(id: number): Promise<Category | null> {
-    try {
-        const db = await getDb();
-        return await db.getFirstAsync<Category>('SELECT * FROM categories WHERE id = ?', [id]);
-    } catch (error) {
-        throw new DatabaseError(`Failed to fetch category ${id}`, error as Error);
     }
 }
 

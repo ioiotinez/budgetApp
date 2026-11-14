@@ -12,8 +12,10 @@ import { useTransactionStore } from '../store/transactionStore';
 import { useBudgetStore } from '../store/budgetStore';
 import { useCategoryStore } from '../store/categoryStore';
 import { useRecurringStore } from '../store/recurringStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { useDeviations } from '../hooks/useDeviations';
 import { usePeriodNavigation } from '../hooks/usePeriodNavigation';
+import { BalanceCard } from '../components/BalanceCard';
 import { SummaryCard } from '../components/SummaryCard';
 import { DeviationRow } from '../components/DeviationRow';
 import { PendingRecurringBanner } from '../components/PendingRecurringBanner';
@@ -32,6 +34,7 @@ export default function DashboardScreen() {
     const { monthTotals, loadMonthTotals } = useTransactionStore();
     const { loadCategories } = useCategoryStore();
     const { loadPending } = useRecurringStore();
+    const { amountsVisible, toggleAmountsVisibility } = useSettingsStore();
     const { deviations, over, warning, hasAlerts } = useDeviations();
     const { globalDeviations } = useBudgetStore();
     const { goToPrev, goToNext } = usePeriodNavigation();
@@ -48,7 +51,6 @@ export default function DashboardScreen() {
     useFocusEffect(useCallback(() => { reload(); }, [reload]));
 
     const balance = useMemo(() => monthTotals.income - monthTotals.expense, [monthTotals]);
-    const balanceColor = useMemo(() => balance >= 0 ? incomeColor : expenseColor, [balance]);
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -67,8 +69,8 @@ export default function DashboardScreen() {
 
                 {/* ── Summary cards ── */}
                 <View style={styles.cardsRow}>
-                    <SummaryCard label="Ingresos" value={monthTotals.income} color={incomeColor} />
-                    <SummaryCard label="Gastos" value={monthTotals.expense} color={expenseColor} />
+                    <SummaryCard label="Ingresos" value={monthTotals.income} color={incomeColor} visible={amountsVisible} />
+                    <SummaryCard label="Gastos" value={monthTotals.expense} color={expenseColor} visible={amountsVisible} />
                 </View>
 
                 {/* ── Pending Recurring ── */}
@@ -117,12 +119,11 @@ export default function DashboardScreen() {
                     </Surface>
                 )}
 
-                <Surface style={[styles.balanceCard, { backgroundColor: theme.colors.surface }]} elevation={1}>
-                    <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>Balance</Text>
-                    <Text variant="headlineMedium" style={{ color: balanceColor, fontWeight: '800' }}>
-                        {formatCurrency(balance)}
-                    </Text>
-                </Surface>
+                <BalanceCard
+                    value={balance}
+                    visible={amountsVisible}
+                    onToggleVisibility={toggleAmountsVisibility}
+                />
 
                 {/* ── Deviation alerts ── */}
                 {hasAlerts && (
@@ -205,9 +206,6 @@ const styles = StyleSheet.create({
     cardsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
     summaryCard: {
         flex: 1, borderRadius: 16, padding: 16,
-    },
-    balanceCard: {
-        borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
     },
     alertBox: {
         borderRadius: 16, padding: 16, marginBottom: 16,

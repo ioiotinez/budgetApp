@@ -4,7 +4,6 @@ import { Text, Surface, useTheme } from 'react-native-paper';
 
 interface ErrorBannerProps {
     message: string;
-    onDismiss?: () => void;
 }
 
 export function ErrorBanner({ message }: ErrorBannerProps) {

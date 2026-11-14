@@ -21,21 +21,6 @@ export async function getRecurringRules(activeOnly = false): Promise<RecurringRu
     }
 }
 
-export async function getRecurringRuleById(id: number): Promise<RecurringRule | null> {
-    try {
-        const db = await getDb();
-        return await db.getFirstAsync<RecurringRule>(`
-        SELECT r.*, c.name as category_name, c.icon as category_icon,
-               c.color as category_color, c.type as category_type
-        FROM recurring_rules r
-        JOIN categories c ON c.id = r.category_id
-        WHERE r.id = ?
-      `, [id]);
-    } catch (error) {
-        throw new DatabaseError(`Failed to fetch recurring rule ${id}`, error as Error);
-    }
-}
-
 export async function createRecurringRule(
     data: Omit<RecurringRule, 'id' | 'createdAt' | 'category' | 'category_name' | 'category_icon' | 'category_color' | 'category_type'>
 ): Promise<number> {
