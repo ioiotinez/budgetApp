@@ -181,6 +181,7 @@ export async function getDeviations(year: number, month: number): Promise<Deviat
             ON mb.category_id = c.id AND mb.year = ? AND mb.month = ?
           LEFT JOIN transactions t
             ON t.category_id = c.id AND t.date LIKE ? AND t.type = 'expense'
+            AND t.payment_method <> 'credit'
           WHERE c.type = 'expense'
           GROUP BY c.id
           ORDER BY c.name ASC
@@ -231,11 +232,11 @@ export async function getGlobalDeviations(year: number, month: number): Promise<
             GROUP BY c.type
         `, [year, month]);
 
-        // Get actual amounts by type
+        // Get actual amounts by type (credit card spending is excluded from the budget)
         const actualRows = await db.getAllAsync<{ type: string; actual: number }>(`
             SELECT type, COALESCE(SUM(amount), 0) as actual
             FROM transactions
-            WHERE date LIKE ?
+            WHERE date LIKE ? AND payment_method <> 'credit'
             GROUP BY type
         `, [`${prefix}%`]);
 

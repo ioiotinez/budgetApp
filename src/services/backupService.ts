@@ -48,7 +48,7 @@ export async function collectAllData(): Promise<BackupData> {
     }
 
     return {
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         categories,
         templates: template,
@@ -173,9 +173,9 @@ export async function restoreFromBackup(data: BackupData, merge = false): Promis
         // Restore transactions
         for (const tx of data.transactions) {
             await db.runAsync(
-                `INSERT OR REPLACE INTO transactions (id, amount, type, category_id, date, description, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [tx.id, tx.amount, tx.type, tx.category_id, tx.date, tx.description ?? '', tx.createdAt]
+                `INSERT OR REPLACE INTO transactions (id, amount, type, category_id, date, description, payment_method, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [tx.id, tx.amount, tx.type, tx.category_id, tx.date, tx.description ?? '', tx.payment_method ?? 'cash', tx.createdAt]
             );
         }
 

@@ -14,7 +14,7 @@ import { useBudgetStore } from '../store/budgetStore';
 import { usePeriodNavigation } from '../hooks/usePeriodNavigation';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { formatCurrency, formatDate, formatMonthYear } from '../utils/formatters';
-import { incomeColor, expenseColor } from '../theme/theme';
+import { incomeColor, expenseColor, creditCardColor } from '../theme/theme';
 import type { Transaction, TransactionStackParamList } from '../types';
 
 type Nav = NativeStackNavigationProp<TransactionStackParamList, 'TransactionList'>;
@@ -30,6 +30,7 @@ export default function TransactionsScreen() {
 
     const [search, setSearch] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+    const [onlyCredit, setOnlyCredit] = useState(false);
     const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
     const [txToDelete, setTxToDelete] = useState<Transaction | null>(null);
 
@@ -38,9 +39,10 @@ export default function TransactionsScreen() {
         await loadTransactions({
             year: currentYear,
             month: currentMonth,
-            categoryId: selectedCategoryId || undefined
+            categoryId: selectedCategoryId || undefined,
+            paymentMethod: onlyCredit ? 'credit' : undefined,
         });
-    }, [currentYear, currentMonth, selectedCategoryId, loadCategories, loadTransactions]);
+    }, [currentYear, currentMonth, selectedCategoryId, onlyCredit, loadCategories, loadTransactions]);
 
     // Recargar al montar, al cambiar filtros, y al regresar del focus
     useEffect(() => {
@@ -73,16 +75,25 @@ export default function TransactionsScreen() {
                                 {item.description}
                             </Text>
                         ) : null}
-                        <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                            {formatDate(item.date)}
-                        </Text>
+                        <View style={styles.txMeta}>
+                            <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                {formatDate(item.date)}
+                            </Text>
+                            {item.payment_method === 'credit' && (
+                                <Text variant="labelSmall" style={{ color: creditCardColor, fontWeight: '700' }}>
+                                    💳 Tarjeta
+                                </Text>
+                            )}
+                        </View>
                     </View>
                 </View>
                 <View style={styles.txRight}>
                     <Text
                         variant="titleSmall"
                         style={{
-                            color: item.type === 'income' ? incomeColor : expenseColor,
+                            color: item.type === 'income'
+                                ? incomeColor
+                                : item.payment_method === 'credit' ? creditCardColor : expenseColor,
                             fontWeight: '700',
                             marginRight: 8,
                         }}
@@ -136,6 +147,16 @@ export default function TransactionsScreen() {
                         mode="outlined"
                     >
                         Todos
+                    </Chip>
+                    <Chip
+                        selected={onlyCredit}
+                        onPress={() => setOnlyCredit(v => !v)}
+                        style={styles.chip}
+                        compact
+                        mode="outlined"
+                        icon="credit-card"
+                    >
+                        Tarjeta
                     </Chip>
                     {categories.map(cat => (
                         <Chip
@@ -216,6 +237,7 @@ const styles = StyleSheet.create({
     },
     txLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     txRight: { flexDirection: 'row', alignItems: 'center' },
+    txMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
     txIcon: { fontSize: 24 },
     emptyContainer: { alignItems: 'center', marginTop: 80 },
     empty: { textAlign: 'center', fontSize: 16, opacity: 0.7 },

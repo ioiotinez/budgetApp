@@ -67,3 +67,5 @@ export const deviationColors = {
 
 export const incomeColor = '#10b981'; // Emerald-500
 export const expenseColor = '#f43f5e'; // Rose-500
+/** Credit card spending is tracked outside the budget, so it gets its own hue. */
+export const creditCardColor = '#818cf8'; // Indigo-400

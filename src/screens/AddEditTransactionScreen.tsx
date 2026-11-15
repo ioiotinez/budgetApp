@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTransactionStore } from '../store/transactionStore';
 import { useCategoryStore } from '../store/categoryStore';
 import { todayISO } from '../utils/formatters';
-import type { TransactionStackParamList, TransactionType, Category } from '../types';
+import type { TransactionStackParamList, TransactionType, Category, PaymentMethod } from '../types';
 
 type Nav = NativeStackNavigationProp<TransactionStackParamList, 'AddEditTransaction'>;
 type Route = RouteProp<TransactionStackParamList, 'AddEditTransaction'>;
@@ -30,6 +30,7 @@ export default function AddEditTransactionScreen() {
     const [categoryId, setCategoryId] = useState<number | null>(null);
     const [date, setDate] = useState(todayISO());
     const [description, setDescription] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -47,6 +48,7 @@ export default function AddEditTransactionScreen() {
                 setCategoryId(tx.category_id);
                 setDate(tx.date);
                 setDescription(tx.description ?? '');
+                setPaymentMethod(tx.payment_method ?? 'cash');
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,6 +77,7 @@ export default function AddEditTransactionScreen() {
             category_id: categoryId!,
             date,
             description: description.trim(),
+            payment_method: type === 'expense' ? paymentMethod : 'cash' as PaymentMethod,
         };
         try {
             if (editId) {
@@ -92,6 +95,7 @@ export default function AddEditTransactionScreen() {
         setDescription('');
         setCategoryId(null);
         setDate(todayISO());
+        setPaymentMethod('cash');
         if (navigation.canGoBack()) {
             navigation.goBack();
         } else {
@@ -128,6 +132,30 @@ export default function AddEditTransactionScreen() {
                     left={<TextInput.Affix text="$" />}
                 />
                 {errors.amount && <Text style={styles.error}>{errors.amount}</Text>}
+
+                {/* Payment method (expenses only) */}
+                {type === 'expense' && (
+                    <>
+                        <Text variant="labelLarge" style={[styles.catLabel, { color: theme.colors.onSurface }]}>
+                            Medio de pago
+                        </Text>
+                        <SegmentedButtons
+                            value={paymentMethod}
+                            onValueChange={v => setPaymentMethod(v as PaymentMethod)}
+                            buttons={[
+                                { value: 'cash', label: 'Efectivo' },
+                                { value: 'debit', label: 'Débito' },
+                                { value: 'credit', label: 'Tarjeta' },
+                            ]}
+                            style={styles.input}
+                        />
+                        {paymentMethod === 'credit' && (
+                            <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                                Los gastos con tarjeta no descuentan del presupuesto mensual.
+                            </Text>
+                        )}
+                    </>
+                )}
 
                 {/* Date */}
                 <TextInput

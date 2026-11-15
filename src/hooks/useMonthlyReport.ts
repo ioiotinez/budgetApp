@@ -11,11 +11,11 @@ export function useMonthlyReport() {
     const monthTotals = useTransactionStore(s => s.monthTotals);
     const categories = useCategoryStore(s => s.categories);
 
-    /** Pie chart data: expense total per category */
+    /** Pie chart data: expense total per category (credit card excluded) */
     const expenseByCategory = useMemo(() => {
         const map = new Map<number, number>();
         for (const tx of transactions) {
-            if (tx.type === 'expense') {
+            if (tx.type === 'expense' && tx.payment_method !== 'credit') {
                 map.set(tx.category_id, (map.get(tx.category_id) ?? 0) + tx.amount);
             }
         }
@@ -36,6 +36,8 @@ export function useMonthlyReport() {
     return {
         totalIncome: monthTotals.income,
         totalExpenses: monthTotals.expense,
+        /** Credit card spending, tracked outside the budget */
+        totalCredit: monthTotals.credit,
         balance,
         expenseByCategory,
     };

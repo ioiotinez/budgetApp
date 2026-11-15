@@ -5,23 +5,27 @@ import {
     updateTransaction,
     deleteTransaction,
     getMonthTotals,
+    getCreditCardTotals,
     type TransactionFilters,
+    type TransactionInput,
 } from '../db/transactionService';
-import type { Transaction, TransactionType } from '../types';
+import type { CreditCardTotals, MonthTotals, Transaction } from '../types';
 
 interface TransactionState {
     transactions: Transaction[];
     isLoading: boolean;
     error: string | null;
     filters: TransactionFilters;
-    monthTotals: { income: number; expense: number };
+    monthTotals: MonthTotals;
+    creditCardTotals: CreditCardTotals;
 
     // Actions
     setFilters: (filters: TransactionFilters) => void;
     loadTransactions: (filters?: TransactionFilters) => Promise<void>;
     loadMonthTotals: (year: number, month: number) => Promise<void>;
-    addTransaction: (data: Omit<Transaction, 'id' | 'createdAt' | 'category'>) => Promise<void>;
-    editTransaction: (id: number, data: Partial<Omit<Transaction, 'id' | 'createdAt' | 'category'>>) => Promise<void>;
+    loadCreditCardTotals: (year: number, month: number) => Promise<void>;
+    addTransaction: (data: TransactionInput) => Promise<void>;
+    editTransaction: (id: number, data: Partial<TransactionInput>) => Promise<void>;
     removeTransaction: (id: number) => Promise<void>;
 }
 
@@ -30,7 +34,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     isLoading: false,
     error: null,
     filters: {},
-    monthTotals: { income: 0, expense: 0 },
+    monthTotals: { income: 0, expense: 0, credit: 0 },
+    creditCardTotals: { total: 0, byCategory: [] },
 
     setFilters: (filters) => set({ filters }),
 
@@ -50,12 +55,18 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         set({ monthTotals: totals });
     },
 
+    loadCreditCardTotals: async (year, month) => {
+        const creditCardTotals = await getCreditCardTotals(year, month);
+        set({ creditCardTotals });
+    },
+
     addTransaction: async (data) => {
         await createTransaction(data);
         const year = parseInt(data.date.substring(0, 4));
         const month = parseInt(data.date.substring(5, 7));
         await get().loadTransactions({ year, month });
         await get().loadMonthTotals(year, month);
+        await get().loadCreditCardTotals(year, month);
     },
 
     editTransaction: async (id, data) => {

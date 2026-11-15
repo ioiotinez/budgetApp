@@ -39,6 +39,7 @@ export const CREATE_TABLES_SQL = `
     category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     date        TEXT    NOT NULL,
     description TEXT,
+    payment_method TEXT NOT NULL DEFAULT 'cash' CHECK(payment_method IN ('cash','debit','credit')),
     createdAt   TEXT    NOT NULL
   );
 

@@ -18,6 +18,7 @@ import { usePeriodNavigation } from '../hooks/usePeriodNavigation';
 import { BalanceCard } from '../components/BalanceCard';
 import { SummaryCard } from '../components/SummaryCard';
 import { DeviationRow } from '../components/DeviationRow';
+import { CreditCardSummaryCard } from '../components/CreditCardSummaryCard';
 import { PendingRecurringBanner } from '../components/PendingRecurringBanner';
 import { formatCurrency, formatMonthYear } from '../utils/formatters';
 import { deviationColors, incomeColor, expenseColor } from '../theme/theme';
@@ -31,10 +32,10 @@ export default function DashboardScreen() {
 
     const { currentYear, currentMonth, checkAndInitCurrentMonth, loadDeviations, loadGlobalDeviations } =
         useBudgetStore();
-    const { monthTotals, loadMonthTotals } = useTransactionStore();
+    const { monthTotals, loadMonthTotals, loadCreditCardTotals, creditCardTotals } = useTransactionStore();
     const { loadCategories } = useCategoryStore();
     const { loadPending } = useRecurringStore();
-    const { amountsVisible, toggleAmountsVisibility } = useSettingsStore();
+    const { amountsVisible, creditCardLimit, toggleAmountsVisibility } = useSettingsStore();
     const { deviations, over, warning, hasAlerts } = useDeviations();
     const { globalDeviations } = useBudgetStore();
     const { goToPrev, goToNext } = usePeriodNavigation();
@@ -43,10 +44,11 @@ export default function DashboardScreen() {
         await loadCategories();
         await checkAndInitCurrentMonth();
         await loadMonthTotals(currentYear, currentMonth);
+        await loadCreditCardTotals(currentYear, currentMonth);
         await loadDeviations(currentYear, currentMonth);
         await loadGlobalDeviations(currentYear, currentMonth);
         await loadPending(currentYear, currentMonth);
-    }, [currentYear, currentMonth, loadCategories, checkAndInitCurrentMonth, loadMonthTotals, loadDeviations, loadGlobalDeviations, loadPending]);
+    }, [currentYear, currentMonth, loadCategories, checkAndInitCurrentMonth, loadMonthTotals, loadCreditCardTotals, loadDeviations, loadGlobalDeviations, loadPending]);
 
     useFocusEffect(useCallback(() => { reload(); }, [reload]));
 
@@ -75,6 +77,16 @@ export default function DashboardScreen() {
 
                 {/* ── Pending Recurring ── */}
                 <PendingRecurringBanner onConfirm={reload} />
+
+                {/* ── Credit card (outside the monthly budget) ── */}
+                {(creditCardTotals.total > 0 || creditCardLimit > 0) && (
+                    <CreditCardSummaryCard
+                        total={creditCardTotals.total}
+                        byCategory={creditCardTotals.byCategory}
+                        limit={creditCardLimit}
+                        visible={amountsVisible}
+                    />
+                )}
 
                 {/* ── Global Deviations ── */}
                 {globalDeviations.length > 0 && globalDeviations.some(g => g.budgeted > 0) && (

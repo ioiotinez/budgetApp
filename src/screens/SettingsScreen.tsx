@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import {
-    Text, Surface, useTheme, Button, Divider, List, ActivityIndicator, Switch,
+    Text, Surface, useTheme, Button, Divider, List, ActivityIndicator, Switch, TextInput,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,15 +21,25 @@ export default function SettingsScreen() {
     const navigation = useNavigation<Nav>();
 
     const {
-        darkMode, loadSettings, toggleDarkMode,
+        darkMode, loadSettings, toggleDarkMode, creditCardLimit, setCreditCardLimit,
     } = useSettingsStore();
 
     const { currentYear, currentMonth } = useBudgetStore();
 
     const [busyExport, setBusyExport] = useState(false);
     const [busyImport, setBusyImport] = useState(false);
+    const [limitInput, setLimitInput] = useState('');
 
     useEffect(() => { loadSettings(); }, []);
+
+    useEffect(() => {
+        setLimitInput(creditCardLimit > 0 ? String(creditCardLimit) : '');
+    }, [creditCardLimit]);
+
+    const saveCreditCardLimit = () => {
+        const parsed = parseFloat(limitInput.replace(',', '.'));
+        setCreditCardLimit(Number.isFinite(parsed) ? parsed : 0);
+    };
 
     const handleExportLocal = async () => {
         setBusyExport(true);
@@ -93,6 +103,29 @@ export default function SettingsScreen() {
                     titleStyle={{ color: theme.colors.onSurface }}
                     descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
                 />
+            </Surface>
+
+            {/* ── Tarjeta de crédito ── */}
+            <Text variant="labelLarge" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+                TARJETA DE CRÉDITO
+            </Text>
+            <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+                <View style={styles.limitContainer}>
+                    <TextInput
+                        label="Límite mensual"
+                        value={limitInput}
+                        onChangeText={setLimitInput}
+                        onBlur={saveCreditCardLimit}
+                        onSubmitEditing={saveCreditCardLimit}
+                        keyboardType="decimal-pad"
+                        mode="outlined"
+                        left={<TextInput.Affix text="$" />}
+                        placeholder="Sin límite"
+                    />
+                    <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+                        Los gastos con tarjeta no descuentan del presupuesto mensual. Se avisa al 80 % y al superar el límite.
+                    </Text>
+                </View>
             </Surface>
 
             {/* ── Transacciones Recurrentes ── */}
@@ -164,5 +197,6 @@ const styles = StyleSheet.create({
     card: { borderRadius: 14, overflow: 'hidden', marginBottom: 20 },
     listIconContainer: { marginLeft: 12, marginRight: 8, justifyContent: 'center' },
     listIcon: { fontSize: 22 },
+    limitContainer: { padding: 16 },
 });
 

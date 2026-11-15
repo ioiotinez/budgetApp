@@ -2,6 +2,9 @@
 
 export type TransactionType = 'income' | 'expense';
 
+/** How an expense was paid. `credit` is excluded from budget and balance totals. */
+export type PaymentMethod = 'cash' | 'debit' | 'credit';
+
 export interface Category {
     id: number;
     name: string;
@@ -42,6 +45,7 @@ export interface Transaction {
     category_id: number;
     date: string; // ISO date string: 'YYYY-MM-DD'
     description?: string;
+    payment_method: PaymentMethod;
     createdAt: string;
     // Joined
     category?: Category;
@@ -97,6 +101,30 @@ export interface PendingRecurring {
     rule: RecurringRule;
     dueDate: string;
     amount: number;
+}
+
+// ─── Credit Card ─────────────────────────────────────────────────────────────
+
+/** Totals for one month split by whether the money already left the budget. */
+export interface MonthTotals {
+    income: number;
+    /** Expenses paid with cash or debit (they consume the monthly budget) */
+    expense: number;
+    /** Expenses paid with credit card (tracked separately, outside the budget) */
+    credit: number;
+}
+
+export interface CreditCardCategoryTotal {
+    category_id: number;
+    name: string;
+    icon: string;
+    color: string;
+    total: number;
+}
+
+export interface CreditCardTotals {
+    total: number;
+    byCategory: CreditCardCategoryTotal[];
 }
 
 export interface BackupData {

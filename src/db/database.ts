@@ -28,6 +28,13 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
             }
         }
 
+        // Older web data may predate the payment_method column.
+        _webStorage.transactions = (_webStorage.transactions ?? []).map((t: any) => ({
+            payment_method: 'cash',
+            ...t,
+        }));
+        _webStorage.settings = _webStorage.settings ?? [];
+
         const storage = _webStorage;
         dbInstance = {
             execAsync: async (sql: string) => {
@@ -44,6 +51,22 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                 const sqlLower = sql.toLowerCase();
                 const save = () => localStorage.setItem('budget_app_data', JSON.stringify(storage));
                 const saveAndReturn = (result: any) => { save(); return result; };
+
+                // Handle Settings
+                if (sqlLower.includes('into settings') && sqlLower.includes('insert')) {
+                    const [key, value] = params;
+                    const idx = storage.settings.findIndex((s: any) => s.key === key);
+                    if (idx !== -1) storage.settings[idx].value = value;
+                    else storage.settings.push({ key, value });
+                    return saveAndReturn({ lastInsertRowId: 1, changes: 1 });
+                }
+
+                // Handle single transaction delete
+                if (sqlLower.includes('delete from transactions') && sqlLower.includes('where id = ?')) {
+                    const id = params[0];
+                    storage.transactions = storage.transactions.filter((t: any) => t.id != id);
+                    return saveAndReturn({ lastInsertRowId: id, changes: 1 });
+                }
 
                 // Handle Categories
                 if (sqlLower.includes('categories') && (sqlLower.includes('insert') || sqlLower.includes('replace'))) {
@@ -180,11 +203,11 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                 if (sqlLower.includes('transactions') && (sqlLower.includes('insert') || sqlLower.includes('replace'))) {
                     let txData;
                     if (sqlLower.includes('(id,')) {
-                        const [id, amount, type, catId, date, desc, createdAt] = params;
-                        txData = { id, amount, type, category_id: catId, date, description: desc, createdAt };
+                        const [id, amount, type, catId, date, desc, paymentMethod, createdAt] = params;
+                        txData = { id, amount, type, category_id: catId, date, description: desc, payment_method: paymentMethod ?? 'cash', createdAt };
                     } else {
                         const newId = storage.transactions.length > 0 ? Math.max(...storage.transactions.map((t: any) => t.id)) + 1 : 1;
-                        txData = { id: newId, amount: params[0], type: params[1], category_id: params[2], date: params[3], description: params[4], createdAt: params[5] };
+                        txData = { id: newId, amount: params[0], type: params[1], category_id: params[2], date: params[3], description: params[4], payment_method: params[5] ?? 'cash', createdAt: params[6] };
                     }
 
                     const idx = storage.transactions.findIndex((t: any) => t.id == txData.id);
@@ -192,6 +215,21 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     else storage.transactions.push(txData);
 
                     return saveAndReturn({ lastInsertRowId: txData.id, changes: 1 });
+                }
+
+                if (sqlLower.includes('update transactions')) {
+                    const id = params[params.length - 1];
+                    const idx = storage.transactions.findIndex((t: any) => t.id == id);
+                    if (idx !== -1) {
+                        const setClause = sqlLower.split('set')[1].split('where')[0];
+                        const fields = setClause.split(',').map(f => f.trim().split('=')[0].trim());
+                        fields.forEach((field: string, i: number) => {
+                            if (storage.transactions[idx].hasOwnProperty(field)) {
+                                storage.transactions[idx][field] = params[i];
+                            }
+                        });
+                    }
+                    return saveAndReturn({ lastInsertRowId: id, changes: idx !== -1 ? 1 : 0 });
                 }
 
                 return saveAndReturn({ lastInsertRowId: 1, changes: 0 });
@@ -216,18 +254,54 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     const year = params[0]; const month = params[1]; const prefix = params[2].replace('%', '');
                     return storage.categories.filter((c: any) => c.type == 'expense').map((c: any) => {
                         const mb = storage.monthly_budgets.find((b: any) => b.category_id == c.id && b.year == year && b.month == month);
-                        const actual = storage.transactions.filter((t: any) => t.category_id == c.id && t.date.startsWith(prefix) && t.type == 'expense').reduce((acc: number, t: any) => acc + t.amount, 0);
+                        const actual = storage.transactions.filter((t: any) => t.category_id == c.id && t.date.startsWith(prefix) && t.type == 'expense' && t.payment_method !== 'credit').reduce((acc: number, t: any) => acc + t.amount, 0);
                         return { category_id: c.id, name: c.name, icon: c.icon, color: c.color, type: c.type, budgeted: mb ? mb.amount : 0, actual: actual };
                     }).sort((a: any, b: any) => a.name.localeCompare(b.name));
                 }
 
-                // 2. Transactions
+                // 2. Credit card totals grouped by category
+                if (sqlLower.includes('join categories') && sqlLower.includes("t.payment_method = 'credit'") && sqlLower.includes('group by')) {
+                    const prefix = String(params[0]).replace('%', '');
+                    const totals = new Map<number, number>();
+                    storage.transactions
+                        .filter((t: any) => t.date.startsWith(prefix) && t.type === 'expense' && t.payment_method === 'credit')
+                        .forEach((t: any) => totals.set(t.category_id, (totals.get(t.category_id) ?? 0) + t.amount));
+                    return Array.from(totals.entries()).map(([categoryId, total]) => {
+                        const cat = storage.categories.find((c: any) => c.id == categoryId);
+                        return { category_id: categoryId, name: cat?.name ?? 'Otro', icon: cat?.icon ?? '💳', color: cat?.color ?? '#94a3b8', total };
+                    }).sort((a: any, b: any) => b.total - a.total);
+                }
+
+                // 3. Transactions
                 if (sqlLower.includes('from transactions')) {
+                    // Totals split by type and by whether the money came from the card
                     if (sqlLower.includes('sum(amount)')) {
-                        const prefix = params[0].replace('%', '');
+                        const prefix = String(params[0]).replace('%', '');
                         const filtered = storage.transactions.filter((t: any) => t.date.startsWith(prefix));
-                        return [{ type: 'income', total: filtered.filter((t: any) => t.type == 'income').reduce((acc: number, t: any) => acc + t.amount, 0) },
-                        { type: 'expense', total: filtered.filter((t: any) => t.type == 'expense').reduce((acc: number, t: any) => acc + t.amount, 0) }];
+                        const sum = (fn: (t: any) => boolean) => filtered.filter(fn).reduce((acc: number, t: any) => acc + t.amount, 0);
+
+                        if (sqlLower.includes('strftime')) {
+                            const rows: any[] = [];
+                            for (let m = 1; m <= 12; m++) {
+                                const suffix = String(m).padStart(2, '0');
+                                const inMonth = (t: any) => t.date.startsWith(`${prefix}-${suffix}`);
+                                rows.push(
+                                    { month: m, type: 'income', is_credit: 0, total: sum((t: any) => inMonth(t) && t.type === 'income' && t.payment_method !== 'credit'), actual: 0 },
+                                    { month: m, type: 'expense', is_credit: 0, total: sum((t: any) => inMonth(t) && t.type === 'expense' && t.payment_method !== 'credit'), actual: 0 },
+                                    { month: m, type: 'expense', is_credit: 1, total: sum((t: any) => inMonth(t) && t.type === 'expense' && t.payment_method === 'credit'), actual: 0 },
+                                );
+                            }
+                            return rows;
+                        }
+
+                        const income = sum((t: any) => t.type === 'income' && t.payment_method !== 'credit');
+                        const expense = sum((t: any) => t.type === 'expense' && t.payment_method !== 'credit');
+                        const credit = sum((t: any) => t.type === 'expense' && t.payment_method === 'credit');
+                        return [
+                            { type: 'income', is_credit: 0, total: income, actual: income },
+                            { type: 'expense', is_credit: 0, total: expense, actual: expense },
+                            { type: 'expense', is_credit: 1, total: credit, actual: credit },
+                        ];
                     }
                     let results = [...storage.transactions];
 
@@ -235,6 +309,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     // 1. date LIKE ? (if year/month provided)
                     // 2. category_id = ? (if categoryId provided)
                     // 3. type = ? (if type provided)
+                    // 4. payment_method = ? (if paymentMethod provided)
                     let pIdx = 0;
                     if (sqlLower.includes('date like ?')) {
                         const val = params[pIdx++];
@@ -247,6 +322,10 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
                     if (sqlLower.includes('t.type = ?')) {
                         const val = params[pIdx++];
                         if (val !== undefined) results = results.filter((t: any) => t.type == val);
+                    }
+                    if (sqlLower.includes('payment_method = ?')) {
+                        const val = params[pIdx++];
+                        if (val !== undefined) results = results.filter((t: any) => t.payment_method == val);
                     }
 
                     return results.map((t: any) => {
@@ -313,8 +392,29 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     if (dbInstance) return dbInstance;
     dbInstance = await SQLite.openDatabaseAsync('budget.db');
     await dbInstance.execAsync(CREATE_TABLES_SQL);
+    await migrateSchema(dbInstance);
     await seedDefaultCategories(dbInstance);
     return dbInstance;
+}
+
+/**
+ * Lightweight, idempotent migrations for databases created by older versions.
+ * `CREATE TABLE IF NOT EXISTS` never adds columns, so every new column needs
+ * an explicit `ALTER TABLE` here; otherwise existing installs must delete
+ * `budget.db` to pick up the change.
+ */
+async function migrateSchema(db: SQLite.SQLiteDatabase): Promise<void> {
+    const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(transactions)');
+    if (!columns.some(c => c.name === 'payment_method')) {
+        // CHECK constraints are validated in the service layer: ALTER TABLE ADD
+        // COLUMN cannot rely on old rows satisfying an inline CHECK.
+        await db.execAsync(
+            "ALTER TABLE transactions ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'cash'"
+        );
+    }
+    await db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions(payment_method)'
+    );
 }
 
 async function seedDefaultCategories(db: SQLite.SQLiteDatabase): Promise<void> {

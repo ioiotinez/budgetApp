@@ -36,6 +36,11 @@ export function useAnnualReport(yearTotals: YearMonthTotal[]) {
         [yearTotals]
     );
 
+    const totalCredit = useMemo(
+        () => yearTotals.reduce((sum, m) => sum + (m.credit ?? 0), 0),
+        [yearTotals]
+    );
+
     const totalBalance = totalIncome - totalExpenses;
 
     const projection: ProjectionData | null = useMemo(() => {
@@ -79,6 +84,7 @@ export function useAnnualReport(yearTotals: YearMonthTotal[]) {
         annualTotals,
         totalIncome,
         totalExpenses,
+        totalCredit,
         totalBalance,
         projection,
     };

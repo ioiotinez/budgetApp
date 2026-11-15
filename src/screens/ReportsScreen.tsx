@@ -9,7 +9,7 @@ import { useBudgetStore } from '../store/budgetStore';
 import { useMonthlyReport } from '../hooks/useMonthlyReport';
 import { useAnnualReport } from '../hooks/useAnnualReport';
 import { formatCurrency, formatMonthYear, prevMonth, nextMonth } from '../utils/formatters';
-import { incomeColor, expenseColor } from '../theme/theme';
+import { incomeColor, expenseColor, creditCardColor } from '../theme/theme';
 import { getYearTotals, type YearMonthTotal } from '../db/transactionService';
 
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -21,7 +21,7 @@ export default function ReportsScreen() {
     const { currentYear, currentMonth, setCurrentPeriod } = useBudgetStore();
     const { loadTransactions, loadMonthTotals } = useTransactionStore();
     const { loadCategories } = useCategoryStore();
-    const { totalIncome, totalExpenses, balance, expenseByCategory } = useMonthlyReport();
+    const { totalIncome, totalExpenses, totalCredit, balance, expenseByCategory } = useMonthlyReport();
     const [reportType, setReportType] = useState('monthly');
     const [yearTotals, setYearTotals] = useState<YearMonthTotal[]>([]);
 
@@ -35,7 +35,7 @@ export default function ReportsScreen() {
         getYearTotals(currentYear).then(setYearTotals);
     }, [currentYear]);
 
-    const { annualTotals, totalIncome: annualIncome, totalExpenses: annualExpenses, totalBalance, projection } = useAnnualReport(yearTotals);
+    const { annualTotals, totalIncome: annualIncome, totalExpenses: annualExpenses, totalCredit: annualCredit, totalBalance, projection } = useAnnualReport(yearTotals);
 
     const goToPrev = () => {
         const p = prevMonth(currentYear, currentMonth);
@@ -83,6 +83,20 @@ export default function ReportsScreen() {
                         <StatCard label="Gastos" value={totalExpenses} color={expenseColor} theme={theme} />
                         <StatCard label="Balance" value={balance} color={balanceColor} theme={theme} />
                     </View>
+
+                    {totalCredit > 0 && (
+                        <Surface style={[styles.creditRow, { backgroundColor: theme.colors.surface }]} elevation={0}>
+                            <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                                💳 Tarjeta de crédito
+                            </Text>
+                            <Text variant="bodyMedium" style={{ color: creditCardColor, fontWeight: '700' }}>
+                                {formatCurrency(totalCredit)}
+                            </Text>
+                            <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                fuera del presupuesto
+                            </Text>
+                        </Surface>
+                    )}
 
                     {/* Category breakdown list */}
                     {expenseByCategory.length > 0 && (
@@ -137,6 +151,20 @@ export default function ReportsScreen() {
                         <StatCard label="Gastos" value={annualExpenses} color={expenseColor} theme={theme} />
                         <StatCard label="Balance" value={totalBalance} color={totalBalance >= 0 ? incomeColor : expenseColor} theme={theme} />
                     </View>
+
+                    {annualCredit > 0 && (
+                        <Surface style={[styles.creditRow, { backgroundColor: theme.colors.surface }]} elevation={0}>
+                            <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                                💳 Tarjeta de crédito (año)
+                            </Text>
+                            <Text variant="bodyMedium" style={{ color: creditCardColor, fontWeight: '700' }}>
+                                {formatCurrency(annualCredit)}
+                            </Text>
+                            <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                fuera del presupuesto
+                            </Text>
+                        </Surface>
+                    )}
 
                     {/* Monthly breakdown */}
                     <Text variant="titleSmall" style={[styles.sectionLabel, { color: theme.colors.onSurface }]}>
@@ -241,6 +269,10 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     summaryRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    creditRow: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginTop: -8, marginBottom: 20,
+    },
     statCard: { flex: 1, borderRadius: 12, padding: 12 },
     sectionLabel: { fontWeight: '700', marginBottom: 8, marginTop: 4 },
     listCard: { borderRadius: 14, overflow: 'hidden', marginBottom: 16 },
