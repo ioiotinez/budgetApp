@@ -33,9 +33,9 @@ src/
 ├── store/
 │   ├── budgetStore.ts         Current period, budgets, deviations, month auto-init
 │   ├── categoryStore.ts       Categories and template state
-│   ├── transactionStore.ts    Transaction list, filters, month totals
+│   ├── transactionStore.ts    Transaction list, filters, month and credit card totals
 │   ├── recurringStore.ts      Rule CRUD, pending list, confirm/skip actions
-│   └── settingsStore.ts       Dark mode and amount visibility persisted in settings
+│   └── settingsStore.ts       Dark mode, amount visibility and credit card limit in settings
 ├── hooks/
 │   ├── useDeviations.ts       Memoized over/warning lists and hasAlerts
 │   ├── useMonthlyReport.ts    Income, expenses, balance, expense-by-category
@@ -59,6 +59,7 @@ src/
 │   ├── SummaryCard.tsx        Income/expense figure card, maskable
 │   ├── DeviationRow.tsx       Alert row with percentage chip
 │   ├── PendingRecurringBanner.tsx  Pending items with Skip/Confirm dialog
+│   ├── CreditCardSummaryCard.tsx  Credit card total, limit progress and category breakdown
 │   └── ErrorBanner.tsx        Error surface fed by transactionStore.error
 ├── navigation/
 │   └── AppNavigator.tsx       Tab navigator and nested Transaction/Settings stacks
@@ -93,16 +94,18 @@ Screen → store action → DB service → getDb()/SQLite → Zustand set(...) �
 | `categories` | `id`, `name`, `type`, `icon`, `color`, `createdAt` | `type` is `income`/`expense` (CHECK) |
 | `budget_templates` | `id`, `category_id`, `amount` | FK → categories, cascade delete |
 | `monthly_budgets` | `id`, `year`, `month`, `category_id`, `amount` | `UNIQUE(year, month, category_id)` |
-| `transactions` | `id`, `amount`, `type`, `category_id`, `date`, `description`, `createdAt` | Indexed on date, category, type, date+type |
+| `transactions` | `id`, `amount`, `type`, `category_id`, `date`, `description`, `payment_method`, `createdAt` | Indexed on date, category, type, date+type, payment_method; `payment_method` is `cash`/`debit`/`credit` (CHECK), credit excluded from budget totals |
 | `settings` | `key` (PK), `value` | App preferences as text |
 | `recurring_rules` | `id`, `amount`, `type`, `category_id`, `description`, `frequency`, `start_date`, `end_date`, `last_generated_date`, `active`, `createdAt` | `active` is 0/1; indexed |
 
 - Dates (`date`, `start_date`, `end_date`, `last_generated_date`) are ISO `YYYY-MM-DD`
   `TEXT`; `createdAt`/`exportedAt` are full ISO timestamps.
 - `CREATE_TABLES_SQL` sets `PRAGMA journal_mode = WAL` and `PRAGMA foreign_keys = ON`, then
-  creates tables/indexes with `IF NOT EXISTS`; there is no migration system, so schema changes
-  require deleting `budget.db` (or clearing the web key).
-- `getDb()` is a singleton: opens `budget.db`, runs the DDL and seeds 15 categories when empty.
+  creates tables/indexes with `IF NOT EXISTS`. Because `IF NOT EXISTS` never alters existing tables,
+  `migrateSchema()` runs right after the DDL: it inspects `PRAGMA table_info(transactions)` and adds
+  `payment_method` (plus its index) only when missing, so upgrades keep data. Any future column must
+  be added there too.
+- `getDb()` is a singleton: opens `budget.db`, runs the DDL, migrates and seeds 15 categories when empty.
 - On web (`USE_SQLITE_IN_WEB = false` in `database.ts`) `getDb()` returns a hand-written mock
   persisted to `localStorage` under `budget_app_data`, implementing only the SQL shapes used.
 
@@ -121,8 +124,9 @@ Screen → store action → DB service → getDb()/SQLite → Zustand set(...) �
 
 ## Backup service
 
-- `collectAllData()` exports `version: 1`, `exportedAt`, categories, templates, budgets,
-  transactions, recurring rules and settings into the `BackupData` shape (`types/index.ts`).
+- `collectAllData()` exports `version: 2`, `exportedAt`, categories, templates, budgets,
+  transactions (with `payment_method`), recurring rules and settings into the `BackupData` shape
+  (`types/index.ts`). Restore defaults a missing `payment_method` to `'cash'` for v1 files.
 - `exportLocal()` writes/shares `budgetapp_backup_YYYY-MM-DD.json` (Blob download on web);
   `pickLocalBackup()` reads a file through `expo-document-picker`.
 - `restoreFromBackup(data, merge)` runs `BEGIN`/`COMMIT` with `ROLLBACK`; `merge = false`
@@ -132,7 +136,7 @@ Screen → store action → DB service → getDb()/SQLite → Zustand set(...) �
 
 - `AppLightTheme` and `AppDarkTheme` extend Paper `MD3LightTheme`/`MD3DarkTheme`: teal primary
   `#14b8a6`, indigo secondary `#818cf8`, rose error `#f43f5e`, slate dark surfaces. Semantic
-  exports: `incomeColor`, `expenseColor`, `deviationColors` (`ok`/`warning`/`over`).
+  exports: `incomeColor`, `expenseColor`, `creditCardColor`, `deviationColors` (`ok`/`warning`/`over`).
 - `App.tsx` picks the theme from `settingsStore.darkMode` (persisted in `settings`) and feeds
   `PaperProvider` plus `StatusBar`.
 - Most surfaces use `useTheme()`; a few screens still inline semantic hex values, so color

@@ -17,10 +17,11 @@ Month-at-a-glance financial overview: income/expense summary cards, a balance ca
 1. **Period header** — prev/next chevrons via `usePeriodNavigation`, month label from `formatMonthYear`.
 2. **Summary cards** — "Ingresos" (green) and "Gastos" (red) from `transactionStore.monthTotals`.
 3. **Pending recurring banner** — rendered only when rules have unconfirmed occurrences (see `recurring.md`).
-4. **"Desviación vs Presupuestado"** — shown when global deviations exist and at least one has a non-zero budget. One row per type: budgeted → actual, plus a status chip (`OVER` / `UNDER` / `OK` with a percentage). For income, under 100% is flagged red (`UNDER`); for expenses, over 100% is red (`OVER`); everything else is green (`OK`).
-5. **Balance card** — `monthTotals.income - monthTotals.expense`, with the privacy toggle.
-6. **"Alertas de presupuesto"** — only when `hasAlerts` from `useDeviations`; lists over-budget rows first, then warning rows, each with a percentage chip.
-7. **"Resumen por categoría"** — one card per expense category: icon, name, percentage colored by status, progress bar (capped at 100%) and `actual / budgeted`. The "Sin presupuesto configurado para este mes." message only appears when there are no expense categories, because `getDeviations` returns every expense category (budget `0` included).
+4. **Credit card card** — `CreditCardSummaryCard`, rendered when the month has credit spending or a limit is configured. Total, status chip and progress bar against `creditCardLimit` (80 % warning, >100 % over) plus a per-category breakdown. Never part of the budget or the balance (see `credit-card.md`).
+5. **"Desviación vs Presupuestado"** — shown when global deviations exist and at least one has a non-zero budget. One row per type: budgeted → actual, plus a status chip (`OVER` / `UNDER` / `OK` with a percentage). For income, under 100% is flagged red (`UNDER`); for expenses, over 100% is red (`OVER`); everything else is green (`OK`).
+6. **Balance card** — `monthTotals.income - monthTotals.expense`, with the privacy toggle.
+7. **"Alertas de presupuesto"** — only when `hasAlerts` from `useDeviations`; lists over-budget rows first, then warning rows, each with a percentage chip.
+8. **"Resumen por categoría"** — one card per expense category: icon, name, percentage colored by status, progress bar (capped at 100%) and `actual / budgeted`. The "Sin presupuesto configurado para este mes." message only appears when there are no expense categories, because `getDeviations` returns every expense category (budget `0` included).
 
 ## Amount privacy toggle
 
@@ -33,7 +34,7 @@ The balance card has an eye button that hides all headline amounts — balance, 
 
 ## Data flow
 
-`useFocusEffect` runs `reload` on focus and whenever the period changes. It awaits, in order: `loadCategories`, `checkAndInitCurrentMonth`, `loadMonthTotals`, `loadDeviations`, `loadGlobalDeviations`, `loadPending`. The `useDeviations` hook derives filtered `over` / `warning` lists from `budgetStore.deviations`; `getDeviations` marks a category `over` above 100%, `warning` from 80% to 100%, otherwise `ok`.
+`useFocusEffect` runs `reload` on focus and whenever the period changes. It awaits, in order: `loadCategories`, `checkAndInitCurrentMonth`, `loadMonthTotals`, `loadCreditCardTotals`, `loadDeviations`, `loadGlobalDeviations`, `loadPending`. The `useDeviations` hook derives filtered `over` / `warning` lists from `budgetStore.deviations`; `getDeviations` marks a category `over` above 100%, `warning` from 80% to 100%, otherwise `ok`.
 
 ## States
 

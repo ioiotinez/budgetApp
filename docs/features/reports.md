@@ -14,12 +14,14 @@ Monthly and annual financial reports with a category breakdown, a 12-month table
 
 - Period navigation (prev/next month) changes `budgetStore.currentYear/currentMonth`.
 - Three stat cards: Ingresos, Gastos and Balance (green when `>= 0`, red otherwise).
-- "Detalle por categoría" — rendered only when there are expenses. Expense-only, aggregated per category, sorted by amount descending: colored dot, category name, amount and percentage of **total expenses** (rounded).
+- A "💳 Tarjeta de crédito — fuera del presupuesto" row when `monthTotals.credit > 0`; credit card expenses are excluded from Gastos, from the balance and from the category breakdown.
+- "Detalle por categoría" — rendered only when there are expenses. Expense-only (credit card excluded), aggregated per category, sorted by amount descending: colored dot, category name, amount and percentage of **total expenses** (rounded).
 
 ## Annual view
 
 - Year navigation with prev/next chevrons; it changes only the year and keeps the current month in the shared period.
 - Three annual stat cards: total income, total expenses and balance.
+- A "💳 Tarjeta de crédito (año)" row when the year has credit spending; `getYearTotals` keeps `credit` per month outside `expense` and out of the projection.
 - "Detalle por mes" — always 12 rows from `getYearTotals(year)` (month abbreviation, income, expense, balance), zero-filled for months without transactions.
 - **Proyección** — rendered only when at least one month in the year has data (see below).
 

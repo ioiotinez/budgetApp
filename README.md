@@ -5,6 +5,7 @@ Gestor de finanzas personales móvil desarrollado con **React Native** y **Expo*
 ## ✨ Características
 
 -   **Registro de Transacciones**: Control total de ingresos y gastos con categorías, fechas y descripciones.
+-   **Tarjeta de Crédito**: Los gastos pagados con tarjeta se registran sin afectar el presupuesto ni el balance, con su propio total y alertas contra un límite mensual configurable.
 -   **Presupuestos Mensuales**: Configuración de límites por categoría. Permite inicializar el mes desde una plantilla maestra o copiando el mes anterior.
 -   **Detección de Desvíos**: Visualización en tiempo real del estado de tus presupuestos con alertas de color (Verde/Ámbar/Rojo).
 -   **Reportes Visuales**: Gráficos donut de gastos por categoría y resúmenes de balance mensual.

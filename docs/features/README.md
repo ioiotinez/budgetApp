@@ -10,5 +10,6 @@ Index of BudgetApp's user-facing features, one file per feature. Each document l
 | [navigation.md](navigation.md) | Bottom tabs, nested Transactions and Settings stacks, route params and tab-bar behavior. |
 | [recurring.md](recurring.md) | Recurring rules: CRUD, frequencies, pending detection, confirm vs skip and `last_generated_date`. |
 | [reports.md](reports.md) | Monthly and annual reports, category breakdown, 12-month table and 6-month projection. |
-| [settings.md](settings.md) | Settings hub: categories, budget, recurring rules, dark mode and local JSON backup/restore. |
+| [credit-card.md](credit-card.md) | Credit card expenses tracked outside the budget, with a configurable monthly limit and alerts. |
+| [settings.md](settings.md) | Settings hub: categories, budget, credit card limit, recurring rules, dark mode and local JSON backup/restore. |
 | [transactions.md](transactions.md) | Transaction list with month navigation, search and category filters, plus the add/edit form. |

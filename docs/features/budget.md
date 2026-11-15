@@ -16,6 +16,12 @@ Screen → Budget store → `budgetService` → SQLite → store update → re-r
 
 `getAllCategoriesWithBudget` LEFT JOINs `categories` with `monthly_budgets`, so every category is listed for the month even when no budget row exists (amount `0`). Rows carry the joined `name`, `type`, `icon` and `color`, and are ordered by type then name. The list is therefore empty only when there are no categories at all.
 
+## Credit card spending
+
+`getDeviations` only counts transactions whose `payment_method` is not `'credit'`: a category paid with
+a credit card shows `0` consumed budget. Card spending is tracked separately in the Dashboard card
+(see `credit-card.md`), so the monthly budget reflects money already spent, not future card debt.
+
 ## Month initialization
 
 `checkAndInitCurrentMonth` runs on every Dashboard reload (not only at app start) and operates on the store's current period, so paging the Dashboard to another month initializes that month as well:

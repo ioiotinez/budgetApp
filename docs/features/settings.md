@@ -18,6 +18,11 @@ The screen is a `ScrollView` of labeled `Surface` cards, in this order:
 - **Categorías** → `Categories` stack screen.
 - **Presupuesto mensual** → `BudgetSetup` with `{ year, month }` taken from the current period; the description shows the formatted month.
 
+### TARJETA DE CRÉDITO
+
+- **Límite mensual** — numeric `TextInput` bound to `settingsStore.creditCardLimit`, persisted under `credit_card_limit` (empty or `0` means "no limit"). It saves on blur/submit and drives the Dashboard alert at 80 % and above 100 %.
+- Credit card expenses never consume the monthly budget; see `credit-card.md`.
+
 ### TRANSACCIONES RECURRENTES
 
 - **Reglas recurrentes** → `RecurringRules` (rule CRUD and pending confirmations; see `recurring.md`).
@@ -42,7 +47,7 @@ The Dashboard amount privacy (`amounts_visible` setting) is also persisted by `s
 
 ## Backup data structure
 
-`BackupData` in `src/types/index.ts`: `version` (`1`), `exportedAt`, `categories`, `templates`, `budgets`, `transactions`, `recurringRules` and `settings` (both optional for older files). Restore reads the same shapes, including the `recurring_rules` table.
+`BackupData` in `src/types/index.ts`: `version` (`2`), `exportedAt`, `categories`, `templates`, `budgets`, `transactions` (including `payment_method`), `recurringRules` and `settings` (both optional for older files). Restore reads the same shapes, including the `recurring_rules` table, and defaults a missing `payment_method` to `'cash'`, so version-1 backups still import.
 
 ## States
 

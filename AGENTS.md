@@ -34,17 +34,18 @@ State flow: **Screen → Store action → DB service → SQLite → Store state 
 
 - Dates stored as ISO `YYYY-MM-DD` `TEXT`.
 - `PRAGMA foreign_keys = ON` and `PRAGMA journal_mode = WAL` set in `CREATE_TABLES_SQL`.
-- Schema changes require users to delete `budget.db` locally (no migration system yet).
-- `getDb()` returns a singleton. On web, uses an in-memory mock backed by `localStorage`.
+- New columns need an entry in `migrateSchema()` (`database.ts`): `CREATE TABLE IF NOT EXISTS` never alters existing tables. It runs after the DDL and is idempotent.
+- `transactions.payment_method` is `'cash' | 'debit' | 'credit'` (default `'cash'`). Rows with `'credit'` are excluded from every budget/balance aggregate (`getMonthTotals` returns them separately as `credit`). See `docs/features/credit-card.md`.
+- `getDb()` returns a singleton. On web, uses an in-memory mock backed by `localStorage`; it parses SQL by substring and params by position, so update it when changing query shapes.
 - DB services (`transactionService.ts`, etc.) throw `DatabaseError` on failure.
 - `recurringService.ts`: `getPendingRecurring(rules, year, month)` computes which active rules have instances due in a given month but not yet generated. Frequencies: `weekly`, `biweekly`, `monthly`, `yearly`. Uses `last_generated_date` to avoid duplicates. Catch-up logic handles missed periods.
 
 ## Stores
 
-- `transactionStore`: `addTransaction` auto-refreshes with `{ year, month }` from the new transaction's date. Not `loadTransactions({})`.
+- `transactionStore`: `addTransaction` auto-refreshes with `{ year, month }` from the new transaction's date. Not `loadTransactions({})`. It also reloads `creditCardTotals`; `loadCreditCardTotals(year, month)` feeds `CreditCardSummaryCard`.
 - `budgetStore`: call `checkAndInitCurrentMonth` on app start to seed monthly budgets from template or previous month.
 - `categoryStore`: `addCategory` auto-refreshes categories and template.
-- `settingsStore`: persists `dark_mode` to `settings` table.
+- `settingsStore`: persists `dark_mode`, `amounts_visible` and `credit_card_limit` (`0` = no limit) to the `settings` table.
 - `recurringStore`: manages `recurring_rules` CRUD + `pending` items. `confirmPending` creates a real transaction and updates `last_generated_date`. `skipPending` only updates `last_generated_date` without creating a transaction. `loadPending(year, month)` fetches active rules and computes which are due but not yet confirmed.
 
 ## Screens & Navigation
